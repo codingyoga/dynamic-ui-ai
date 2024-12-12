@@ -22,7 +22,7 @@ const OpenAIStyleUpdater = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
@@ -43,6 +43,8 @@ const OpenAIStyleUpdater = () => {
       });
 
       const data = await response.json();
+      console.log('API Response:', data);
+
       try {
         const newStyles = JSON.parse(data.choices[0].message.content);
         return newStyles;
