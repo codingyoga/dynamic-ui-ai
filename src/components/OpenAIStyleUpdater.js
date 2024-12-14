@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageCircle, X, Loader } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { MessageCircle, X, Loader, Send } from 'lucide-react';
 
 const OpenAIStyleUpdater = () => {
   const [styles, setStyles] = useState({
@@ -15,6 +15,18 @@ const OpenAIStyleUpdater = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const chatEndRef = useRef(null);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory]);
+
+  // Animation classes when chat opens/closes
+  const chatContainerClass = `fixed bottom-24 right-6 w-96 bg-white rounded-2xl shadow-2xl border-0 overflow-hidden 
+    transition-all duration-300 ease-in-out transform
+    ${isChatOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`;
+
 
   const updateStyles = async (command) => {
     try {
@@ -60,6 +72,8 @@ const OpenAIStyleUpdater = () => {
 
   const handleCommand = async (e) => {
     e.preventDefault();
+    if (!chatInput.trim()) return;
+    
     setIsLoading(true);
     
     try {
@@ -95,61 +109,83 @@ const OpenAIStyleUpdater = () => {
       {/* Chat Toggle Button */}
       <button
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="fixed bottom-6 right-6 p-4 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+        className="fixed bottom-6 right-6 p-4 bg-blue-500 text-white rounded-full shadow-xl hover:bg-blue-600 transition-all duration-300 transform hover:scale-105 active:scale-95"
       >
         {isChatOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
 
-      {/* Floating Chat Window */}
-      {isChatOpen && (
-        <div className="fixed bottom-24 right-6 w-80 bg-white rounded-lg shadow-xl border overflow-hidden">
-          {/* Chat Header */}
-          <div className="bg-blue-500 text-white p-4 flex justify-between items-center">
+      {/* Enhanced Floating Chat Window */}
+      <div className={chatContainerClass}>
+        {/* Chat Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <MessageCircle size={20} className="text-blue-200" />
             <h3 className="font-medium">Style Assistant</h3>
-            <button onClick={() => setIsChatOpen(false)}>
-              <X size={20} />
-            </button>
           </div>
+          <button 
+            onClick={() => setIsChatOpen(false)}
+            className="hover:bg-white/10 p-1 rounded-full transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-          {/* Chat History */}
-          <div className="h-72 overflow-y-auto p-4 space-y-2">
-            {chatHistory.map((msg, idx) => (
-              <div 
-                key={idx}
-                className={`p-2 rounded-lg ${
+        {/* Chat History */}
+        <div className="h-96 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          {chatHistory.length === 0 && (
+            <div className="text-center text-gray-400 mt-8">
+              <MessageCircle size={40} className="mx-auto mb-2 opacity-50" />
+              <p>Start a conversation to modify styles</p>
+            </div>
+          )}
+          
+          {chatHistory.map((msg, idx) => (
+            <div 
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-2xl ${
                   msg.role === 'user' 
-                    ? 'bg-blue-100 ml-auto w-fit' 
-                    : 'bg-gray-100 w-fit'
+                    ? 'bg-blue-500 text-white rounded-br-sm' 
+                    : 'bg-white shadow-sm border rounded-bl-sm'
                 }`}
               >
                 {msg.content}
               </div>
-            ))}
-          </div>
-
-          {/* Chat Input */}
-          <form onSubmit={handleCommand} className="p-4 border-t">
-            <div className="flex gap-2">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type your style command..."
-                className="flex-1 p-2 border rounded-lg"
-                disabled={isLoading}
-              />
-              <button 
-                type="submit"
-                className={`p-2 rounded-lg text-white ${
-                  isLoading ? 'bg-gray-400' : 'bg-blue-500'
-                }`}
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader className="animate-spin" size={20} /> : 'Send'}
-              </button>
             </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Chat Input */}
+        <div className="border-t bg-white p-4">
+          <form onSubmit={handleCommand} className="flex gap-2">
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Type your style command..."
+              className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+            />
+            <button 
+              type="submit"
+              disabled={isLoading || !chatInput.trim()}
+              className={`p-3 rounded-full transition-colors ${
+                isLoading || !chatInput.trim() 
+                  ? 'bg-gray-100 text-gray-400' 
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              {isLoading ? (
+                <Loader className="animate-spin" size={20} />
+              ) : (
+                <Send size={20} />
+              )}
+            </button>
           </form>
         </div>
-      )}
+      </div>
     </div>
   );
 };
